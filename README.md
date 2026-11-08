@@ -1,5 +1,9 @@
 # Cluster Transaction
 
+[![Maven build](https://github.com/fishered/Spring-transaction/actions/workflows/maven.yml/badge.svg)](https://github.com/fishered/Spring-transaction/actions/workflows/maven.yml)
+
+[项目介绍页](https://fishered.github.io/Spring-transaction/) · [GitHub Actions](https://github.com/fishered/Spring-transaction/actions)
+
 一个面向 Spring Boot 的跨服务事务组件设计与实现项目。目标是用持久化 Saga 流程管理跨服务操作，让超时、重复请求和节点宕机后的状态可以查询与恢复。
 
 > **当前状态：设计与构建骨架。** 仓库目前只有全局状态机和 Starter 自动配置的初始代码；协调器、参与方持久化、网络传输及补偿执行尚未实现。请勿将它用于生产事务。
@@ -34,7 +38,7 @@ GitHub Actions 在 Java 17 和 21 上执行相同构建。构建通过只表示*
 3. 集群调度：租约、版本检查、结果查询、补偿与恢复。
 4. Spring Boot 接入与订单样例：故障注入、指标和运行文档。
 
-项目介绍页源文件位于 [`site/`](site/)。推送到 `main` 后，Pages 工作流会发布该目录；首次发布需在仓库 Settings → Pages 将 Source 设为 **GitHub Actions**。
+项目介绍页源文件位于 [`site/`](site/)。推送该目录到 `main` 后，Pages 工作流会自动发布；仓库 Pages Source 已设为 **GitHub Actions**。
 
 ## 设计参考
 
