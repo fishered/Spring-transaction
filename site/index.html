@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102a43">
+  <meta name="description" content="Cluster Transaction：面向 Spring Boot 的可恢复跨服务事务组件设计。了解 Saga 执行、幂等、补偿与集群恢复。">
+  <title>Cluster Transaction · 跨服务事务的恢复路径</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #102a43;
+      --ink-soft: #50657a;
+      --paper: #f3f7fa;
+      --surface: #ffffff;
+      --line: #d9e4eb;
+      --teal: #0b8f83;
+      --teal-pale: #e4f5f2;
+      --blue: #3158b7;
+      --blue-pale: #eaf0ff;
+      --amber: #a76111;
+      --amber-pale: #fff1dc;
+      --red: #b65050;
+      --red-pale: #fff0ee;
+      --shadow: 0 22px 70px rgba(21, 54, 82, .1);
+      --font-body: "Segoe UI", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      --font-code: "Cascadia Code", "IBM Plex Mono", Consolas, monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; color: var(--ink); background: var(--paper); font-family: var(--font-body); line-height: 1.65; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; }
+    :focus-visible { outline: 3px solid var(--teal); outline-offset: 4px; }
+    .wrap { width: min(1160px, calc(100% - 48px)); margin-inline: auto; }
+    .mono, .eyebrow, .tag, .step-index, .trace-meta { font-family: var(--font-code); }
+    .eyebrow { color: var(--teal); font-size: .74rem; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }
+    .topbar { position: relative; z-index: 2; background: rgba(243,247,250,.93); border-bottom: 1px solid var(--line); }
+    .topbar-inner { min-height: 75px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+    .brand { display: inline-flex; align-items: center; gap: 12px; font-size: 1.02rem; font-weight: 800; letter-spacing: -.04em; white-space: nowrap; }
+    .brand-mark { width: 35px; height: 35px; display: grid; place-items: center; border-radius: 10px; background: var(--ink); color: #fff; font-family: var(--font-code); font-size: .93rem; letter-spacing: -.12em; padding-right: 3px; }
+    nav { display: flex; align-items: center; flex-wrap: wrap; gap: clamp(14px, 2.5vw, 32px); font-size: .87rem; color: var(--ink-soft); font-weight: 650; }
+    nav a:hover, .text-link:hover { color: var(--teal); }
+    .nav-pill { border: 1px solid var(--line); background: #fff; border-radius: 100px; padding: 8px 14px; color: var(--ink); }
+    .hero { position: relative; overflow: hidden; padding: clamp(64px, 8vw, 116px) 0 92px; }
+    .hero::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: .6; background-image: linear-gradient(to right, transparent 47px, #dce8ed 48px), linear-gradient(to bottom, transparent 47px, #dce8ed 48px); background-size: 48px 48px; mask-image: linear-gradient(to bottom, #000, transparent 90%); }
+    .hero-grid { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); align-items: center; gap: clamp(48px, 7vw, 100px); }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 650px; margin: 18px 0 24px; font-size: clamp(3.1rem, 5.6vw, 5.85rem); line-height: 1.07; letter-spacing: -.085em; font-weight: 850; }
+    h1 span { color: var(--teal); }
+    .hero-copy { max-width: 560px; margin-bottom: 31px; color: var(--ink-soft); font-size: clamp(1rem, 1.3vw, 1.13rem); line-height: 1.82; }
+    .hero-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; }
+    .button { display: inline-flex; justify-content: center; align-items: center; gap: 9px; min-height: 47px; padding: 10px 19px; border: 1px solid transparent; border-radius: 10px; font-size: .91rem; font-weight: 750; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+    .button:hover { transform: translateY(-2px); }
+    .button-primary { background: var(--ink); color: #fff; box-shadow: 0 10px 25px rgba(16,42,67,.19); }
+    .button-secondary { background: #fff; border-color: var(--line); color: var(--ink); }
+    .micro-note { margin: 24px 0 0; color: var(--ink-soft); font-size: .76rem; }
+    .micro-note strong { color: var(--ink); }
+    .trace { position: relative; padding: 25px; border: 1px solid #d5e3ea; border-radius: 18px; background: #fff; box-shadow: var(--shadow); }
+    .trace::before { content: ""; position: absolute; top: -13px; right: 24px; width: 99px; height: 6px; border-radius: 8px; background: repeating-linear-gradient(90deg, var(--teal) 0 17px, transparent 17px 24px); }
+    .trace-head { display: flex; align-items: start; justify-content: space-between; gap: 14px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+    .trace-title { margin: 1px 0 5px; font-size: .91rem; font-weight: 800; }
+    .trace-meta { color: #718497; font-size: .68rem; }
+    .status { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px; border-radius: 6px; color: var(--teal); background: var(--teal-pale); font: 700 .67rem var(--font-code); }
+    .status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .status.compensated { color: var(--amber); background: var(--amber-pale); }
+    .scenario-tabs { display: flex; flex-wrap: wrap; gap: 7px; padding: 18px 0 6px; }
+    .scenario-tabs button { cursor: pointer; border: 1px solid var(--line); background: #fff; color: var(--ink-soft); border-radius: 7px; padding: 7px 10px; font-size: .75rem; font-weight: 700; }
+    .scenario-tabs button[aria-pressed="true"] { border-color: #a8d9d2; background: var(--teal-pale); color: #057c72; }
+    .trace-list { position: relative; list-style: none; margin: 0; padding: 10px 0 3px 0; }
+    .trace-list::before { content: ""; position: absolute; top: 32px; bottom: 25px; left: 12px; width: 2px; background: #d7e6e6; }
+    .trace-list li { position: relative; display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 12px; min-height: 53px; }
+    .trace-dot { position: relative; z-index: 1; width: 25px; height: 25px; display: grid; place-items: center; border: 2px solid #b9dbd5; border-radius: 50%; background: #fff; color: var(--teal); font: 800 .68rem var(--font-code); }
+    .trace-list li:last-child .trace-dot { border-color: var(--teal); background: var(--teal); color: #fff; }
+    .trace-list li.warning .trace-dot { border-color: #e9c792; color: var(--amber); }
+    .trace-list li.warning:last-child .trace-dot { background: var(--amber); color: #fff; }
+    .trace-label { font-size: .84rem; font-weight: 720; }
+    .trace-sub { display: block; margin-top: -3px; font-size: .69rem; color: #8292a1; font-family: var(--font-code); }
+    .trace-state { color: var(--teal); font: 700 .65rem var(--font-code); }
+    .warning .trace-state { color: var(--amber); }
+    .trace-foot { margin-top: 14px; padding: 12px 13px; border-radius: 9px; background: #f2f6f9; color: var(--ink-soft); font-size: .77rem; line-height: 1.55; }
+    .trace-foot strong { color: var(--ink); }
+    .section { padding: 100px 0; }
+    .section-white { background: #fff; }
+    .section-head { max-width: 740px; margin-bottom: 42px; }
+    h2 { margin: 9px 0 17px; font-size: clamp(2.2rem, 3.7vw, 3.45rem); line-height: 1.2; letter-spacing: -.065em; }
+    .section-head p { color: var(--ink-soft); font-size: 1rem; line-height: 1.78; }
+    .principles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .principle { min-height: 240px; padding: 28px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+    .principle:nth-child(2) { background: #eaf4f4; border-color: #c7e2df; }
+    .principle .index { color: var(--teal); font: 700 .76rem var(--font-code); }
+    .principle h3 { margin: 48px 0 8px; font-size: 1.23rem; letter-spacing: -.035em; }
+    .principle p { margin: 0; color: var(--ink-soft); font-size: .88rem; }
+    .architecture { display: grid; grid-template-columns: 1fr 1fr; gap: 42px; align-items: center; }
+    .arch-panel { padding: 28px; border-radius: 16px; background: var(--ink); color: #fff; box-shadow: var(--shadow); }
+    .arch-panel .eyebrow { color: #75d9cc; }
+    .arch-row { display: grid; grid-template-columns: 48px 1fr; gap: 12px; padding: 18px 0; border-bottom: 1px solid rgba(255,255,255,.14); }
+    .arch-row:last-child { border-bottom: 0; padding-bottom: 0; }
+    .arch-icon { width: 40px; height: 40px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.25); border-radius: 9px; color: #91dfd5; font-family: var(--font-code); font-size: .78rem; }
+    .arch-row h3 { margin: 0 0 2px; font-size: .95rem; }
+    .arch-row p { margin: 0; color: #bdd0df; font-size: .78rem; }
+    .arch-copy p { color: var(--ink-soft); }
+    .arch-copy ul { padding-left: 21px; color: var(--ink-soft); font-size: .9rem; }
+    .arch-copy li { margin: 10px 0; }
+    .boundaries { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .boundary { padding: 29px; border-radius: 14px; border: 1px solid var(--line); background: #fff; }
+    .boundary.good { border-top: 4px solid var(--teal); }
+    .boundary.limit { border-top: 4px solid var(--amber); }
+    .boundary h3 { margin-bottom: 22px; font-size: 1.2rem; }
+    .boundary ul { margin: 0; padding: 0; list-style: none; }
+    .boundary li { display: flex; gap: 10px; padding: 11px 0; border-top: 1px solid var(--line); color: var(--ink-soft); font-size: .88rem; }
+    .boundary li::before { content: "→"; color: var(--teal); font-weight: 800; }
+    .boundary.limit li::before { color: var(--amber); }
+    .roadmap { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); }
+    .milestone { padding: 27px 24px 10px 0; border-right: 1px solid var(--line); }
+    .milestone:not(:first-child) { padding-left: 24px; }
+    .milestone:last-child { border-right: 0; }
+    .milestone .tag { font-size: .7rem; color: var(--ink-soft); }
+    .milestone .tag.done { color: var(--teal); }
+    .milestone h3 { margin: 12px 0 8px; font-size: 1.12rem; }
+    .milestone p { font-size: .84rem; color: var(--ink-soft); }
+    .footer { padding: 35px 0 48px; border-top: 1px solid var(--line); background: #eaf1f5; }
+    .footer-inner { display: flex; align-items: center; justify-content: space-between; gap: 20px; color: var(--ink-soft); font-size: .8rem; }
+    .footer strong { color: var(--ink); }
+    @media (max-width: 900px) {
+      .hero-grid, .architecture { grid-template-columns: 1fr; }
+      .hero { padding-top: 70px; }
+      .trace { max-width: 680px; }
+    }
+    @media (max-width: 680px) {
+      .wrap { width: min(100% - 32px, 1160px); }
+      .topbar-inner { align-items: flex-start; flex-direction: column; padding: 15px 0; gap: 10px; }
+      nav { gap: 14px; }
+      .nav-pill { display: none; }
+      .hero { padding: 58px 0 70px; }
+      .hero-grid { gap: 44px; }
+      h1 { font-size: clamp(2.9rem, 12vw, 4.1rem); }
+      .trace { padding: 19px; }
+      .section { padding: 74px 0; }
+      .principles, .boundaries, .roadmap { grid-template-columns: 1fr; }
+      .principle { min-height: 0; }
+      .principle h3 { margin-top: 26px; }
+      .roadmap { border-top: 0; }
+      .milestone, .milestone:not(:first-child) { border-right: 0; border-top: 1px solid var(--line); padding: 20px 0 12px; }
+      .footer-inner { align-items: flex-start; flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .button { transition: none; }
+      .button:hover { transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="brand" href="#top" aria-label="Cluster Transaction 首页"><span class="brand-mark">tx/</span><span>Cluster Transaction</span></a>
+      <nav aria-label="主导航">
+        <a href="#principles">设计原则</a>
+        <a href="#architecture">组件架构</a>
+        <a href="#boundaries">保证边界</a>
+        <a id="repo-link" hidden>GitHub 仓库</a>
+        <a href="#roadmap" class="nav-pill">开发路线 ↗</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="wrap hero-grid">
+        <div>
+          <span class="eyebrow">Spring Boot / recoverable workflows</span>
+          <h1 id="hero-title">跨服务事务，<br><span>失败也有路径。</span></h1>
+          <p class="hero-copy">为每一步保存进度，给超时一个可查询的结果，给失败一个可恢复的后续动作。Cluster Transaction 正在构建一个面向 Spring Boot 的 Saga 组件。</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#architecture">了解组件设计 <span aria-hidden="true">↗</span></a>
+            <a class="button button-secondary" href="#roadmap">查看开发进度</a>
+          </div>
+          <p class="micro-note"><strong>当前阶段：</strong>设计与 Maven 骨架 · 事务协调功能尚未实现</p>
+        </div>
+
+        <div class="trace" aria-label="可切换的事务执行轨迹示例">
+          <div class="trace-head">
+            <div><p class="trace-title">事务运行轨迹</p><div class="trace-meta">saga / order-2026-001 · operationId 保持稳定</div></div>
+            <span id="trace-status" class="status" aria-live="polite">SUCCEEDED</span>
+          </div>
+          <div class="scenario-tabs" role="group" aria-label="选择故障场景">
+            <button type="button" data-scenario="normal" aria-pressed="true">正常完成</button>
+            <button type="button" data-scenario="timeout" aria-pressed="false">响应丢失</button>
+            <button type="button" data-scenario="rejected" aria-pressed="false">业务拒绝</button>
+          </div>
+          <ol id="trace-list" class="trace-list" aria-live="polite">
+            <li><span class="trace-dot">1</span><span class="trace-label">订单已创建<span class="trace-sub">order / PENDING</span></span><span class="trace-state">DONE</span></li>
+            <li><span class="trace-dot">2</span><span class="trace-label">库存已预留<span class="trace-sub">inventory / reserve</span></span><span class="trace-state">DONE</span></li>
+            <li><span class="trace-dot">3</span><span class="trace-label">支付已确认<span class="trace-sub">payment / charge</span></span><span class="trace-state">DONE</span></li>
+            <li><span class="trace-dot">4</span><span class="trace-label">订单已完成<span class="trace-sub">order / CONFIRMED</span></span><span class="trace-state">DONE</span></li>
+          </ol>
+          <div id="trace-foot" class="trace-foot"><strong>结果：</strong>所有步骤已确认，流程进入 SUCCEEDED。</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="principles" class="section section-white" aria-labelledby="principles-title">
+      <div class="wrap">
+        <div class="section-head"><span class="eyebrow">What guides the design</span><h2 id="principles-title">先把故障讲清楚，<br>再写事务框架。</h2><p>跨服务调用总会遇到重试、超时和节点切换。组件要让这些状态有记录、有判断依据，也有下一步动作。</p></div>
+        <div class="principles">
+          <article class="principle"><span class="index">01 / 记录</span><h3>每一步都可追踪</h3><p>协调器持久化流程与步骤状态。进程退出后，新的工作节点能从数据库继续执行。</p></article>
+          <article class="principle"><span class="index">02 / 判断</span><h3>超时先查结果</h3><p>响应丢失不等于执行失败。用稳定的操作 ID 查询参与方，再决定推进或补偿。</p></article>
+          <article class="principle"><span class="index">03 / 恢复</span><h3>重复调用仍安全</h3><p>参与方把业务变更与幂等记录放在同一个本地事务中，并拒绝迟到的执行请求。</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="architecture" class="section" aria-labelledby="architecture-title">
+      <div class="wrap architecture">
+        <div class="arch-copy"><span class="eyebrow">Architecture</span><h2 id="architecture-title">嵌入式协调，<br>各服务自主管理数据。</h2><p>发起服务引入 Starter，多个实例共享协调器状态库；每个参与服务保留自己的数据库和业务事务。</p><ul><li>显式定义执行、查询与补偿接口。</li><li>协调器使用数据库租约和版本检查切换工作节点。</li><li>跨服务传输可替换，核心逻辑不绑定 HTTP 或消息队列。</li></ul></div>
+        <div class="arch-panel" aria-label="组件分层"><span class="eyebrow">component map</span><div class="arch-row"><span class="arch-icon">01</span><div><h3>发起服务 · Saga 协调器</h3><p>保存实例、步骤与下一次执行时间，决定推进或补偿。</p></div></div><div class="arch-row"><span class="arch-icon">02</span><div><h3>参与服务 · 本地事务</h3><p>执行业务操作，并在同一数据库事务中保存幂等结果。</p></div></div><div class="arch-row"><span class="arch-icon">03</span><div><h3>恢复任务 · 集群接管</h3><p>扫描到期流程，查询未知结果，按规则重试并告警。</p></div></div></div>
+      </div>
+    </section>
+
+    <section id="boundaries" class="section section-white" aria-labelledby="boundaries-title">
+      <div class="wrap"><div class="section-head"><span class="eyebrow">Guarantees & limits</span><h2 id="boundaries-title">明确保证范围。</h2><p>第一版目标是可恢复的最终一致性。业务必须为补偿和不可逆副作用作出明确设计。</p></div><div class="boundaries"><div class="boundary good"><h3>设计目标</h3><ul><li>稳定业务键与操作 ID，支持请求去重。</li><li>持久化执行进度，节点故障后继续处理。</li><li>区分成功、补偿完成和需要人工处理。</li><li>让超时结果先进入查询流程。</li></ul></div><div class="boundary limit"><h3>不承诺的能力</h3><ul><li>跨 HTTP 服务的即时原子提交。</li><li>自动生成正确的业务补偿逻辑。</li><li>任意外部支付或通知都可以回滚。</li><li>尚未实现的功能已经可用于生产。</li></ul></div></div></div>
+    </section>
+
+    <section id="roadmap" class="section" aria-labelledby="roadmap-title">
+      <div class="wrap"><div class="section-head"><span class="eyebrow">Build status</span><h2 id="roadmap-title">从状态机开始，<br>用故障测试收尾。</h2><p>页面展示实际进度；Actions 构建通过只表示当前骨架代码通过验证。</p></div><div class="roadmap"><article class="milestone"><span class="tag done">已完成 · 01</span><h3>设计与项目骨架</h3><p>明确一致性边界，建立 Maven 模块、状态转换规则和自动配置入口。</p></article><article class="milestone"><span class="tag">下一阶段 · 02</span><h3>持久化与参与方</h3><p>实现状态表、幂等记录、取消栅栏及业务事务边界。</p></article><article class="milestone"><span class="tag">计划中 · 03</span><h3>集群恢复与样例</h3><p>加入租约、结果查询、补偿、指标以及订单流程故障测试。</p></article></div></div>
+    </section>
+  </main>
+
+  <footer class="footer"><div class="wrap footer-inner"><span><strong>Cluster Transaction</strong> · Spring Boot 跨服务事务组件设计</span><span>状态清晰，恢复有据。</span></div></footer>
+
+  <script>
+    const repoLink = document.getElementById('repo-link');
+    if (location.hostname.endsWith('.github.io')) {
+      const owner = location.hostname.slice(0, -'.github.io'.length);
+      const repo = location.pathname.split('/').filter(Boolean)[0];
+      if (owner && repo) {
+        repoLink.href = `https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(decodeURIComponent(repo))}`;
+        repoLink.hidden = false;
+      }
+    }
+    const scenarios = {
+      normal: {
+        status: 'SUCCEEDED', foot: '所有步骤已确认，流程进入 SUCCEEDED.',
+        steps: [
+          ['订单已创建', 'order / PENDING', 'DONE'],
+          ['库存已预留', 'inventory / reserve', 'DONE'],
+          ['支付已确认', 'payment / charge', 'DONE'],
+          ['订单已完成', 'order / CONFIRMED', 'DONE']
+        ]
+      },
+      timeout: {
+        status: 'SUCCEEDED', foot: '支付响应丢失。协调器用原 operationId 查询，确认已扣款后继续完成订单。',
+        steps: [
+          ['订单已创建', 'order / PENDING', 'DONE'],
+          ['库存已预留', 'inventory / reserve', 'DONE'],
+          ['支付响应丢失', 'payment / UNKNOWN', 'QUERY'],
+          ['查询确认支付成功', 'payment / EXECUTED', 'DONE']
+        ]
+      },
+      rejected: {
+        status: 'COMPENSATED', foot: '库存明确拒绝后，流程按业务规则补偿已完成的订单步骤。',
+        steps: [
+          ['订单已创建', 'order / PENDING', 'DONE'],
+          ['库存明确拒绝', 'inventory / REJECTED', 'STOP'],
+          ['订单已补偿', 'order / CANCELLED', 'DONE']
+        ]
+      }
+    };
+    const list = document.getElementById('trace-list');
+    const status = document.getElementById('trace-status');
+    const foot = document.getElementById('trace-foot');
+    document.querySelectorAll('[data-scenario]').forEach(button => {
+      button.addEventListener('click', () => {
+        const selected = scenarios[button.dataset.scenario];
+        document.querySelectorAll('[data-scenario]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+        status.textContent = selected.status;
+        status.classList.toggle('compensated', selected.status === 'COMPENSATED');
+        list.replaceChildren();
+        selected.steps.forEach(([label, detail, state], index) => {
+          const row = document.createElement('li');
+          if (state === 'QUERY' || state === 'STOP') row.className = 'warning';
+          const dot = document.createElement('span'); dot.className = 'trace-dot'; dot.textContent = String(index + 1);
+          const name = document.createElement('span'); name.className = 'trace-label'; name.textContent = label;
+          const sub = document.createElement('span'); sub.className = 'trace-sub'; sub.textContent = detail; name.append(sub);
+          const outcome = document.createElement('span'); outcome.className = 'trace-state'; outcome.textContent = state;
+          row.append(dot, name, outcome); list.append(row);
+        });
+        foot.textContent = '结果：' + selected.foot;
+      });
+    });
+  </script>
+</body>
+</html>
