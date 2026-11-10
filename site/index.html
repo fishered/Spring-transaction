@@ -161,7 +161,7 @@
         <a href="#architecture">组件架构</a>
         <a href="#boundaries">保证边界</a>
         <a id="repo-link" hidden>GitHub 仓库</a>
-        <a href="#roadmap" class="nav-pill">开发路线 ↗</a>
+        <a href="#roadmap" class="nav-pill">当前进度 ↗</a>
       </nav>
     </div>
   </header>
@@ -172,12 +172,12 @@
         <div>
           <span class="eyebrow">Spring Boot / recoverable workflows</span>
           <h1 id="hero-title">跨服务事务，<br><span>失败也有路径。</span></h1>
-          <p class="hero-copy">为每一步保存进度，给超时一个可查询的结果，给失败一个可恢复的后续动作。Cluster Transaction 正在构建一个面向 Spring Boot 的 Saga 组件。</p>
+          <p class="hero-copy">为每一步保存进度，给超时一个可查询的结果，给失败一个可恢复的后续动作。Cluster Transaction 已提供可运行的 Spring Boot Saga 协调、补偿与 HTTP 示例。</p>
           <div class="hero-actions">
-            <a class="button button-primary" href="#architecture">了解组件设计 <span aria-hidden="true">↗</span></a>
-            <a class="button button-secondary" href="#roadmap">查看开发进度</a>
+            <a class="button button-primary" href="https://github.com/fishered/Spring-transaction#运行示例">运行双服务示例 <span aria-hidden="true">↗</span></a>
+            <a class="button button-secondary" href="#architecture">了解组件设计</a>
           </div>
-          <p class="micro-note"><strong>当前阶段：</strong>设计与 Maven 骨架 · 事务协调功能尚未实现</p>
+          <p class="micro-note"><strong>当前阶段：</strong>可运行 MVP · 协调、逆序补偿、幂等与恢复已实现 · 生产适配仍需验证</p>
         </div>
 
         <div class="trace" aria-label="可切换的事务执行轨迹示例">
@@ -220,11 +220,11 @@
     </section>
 
     <section id="boundaries" class="section section-white" aria-labelledby="boundaries-title">
-      <div class="wrap"><div class="section-head"><span class="eyebrow">Guarantees & limits</span><h2 id="boundaries-title">明确保证范围。</h2><p>第一版目标是可恢复的最终一致性。业务必须为补偿和不可逆副作用作出明确设计。</p></div><div class="boundaries"><div class="boundary good"><h3>设计目标</h3><ul><li>稳定业务键与操作 ID，支持请求去重。</li><li>持久化执行进度，节点故障后继续处理。</li><li>区分成功、补偿完成和需要人工处理。</li><li>让超时结果先进入查询流程。</li></ul></div><div class="boundary limit"><h3>不承诺的能力</h3><ul><li>跨 HTTP 服务的即时原子提交。</li><li>自动生成正确的业务补偿逻辑。</li><li>任意外部支付或通知都可以回滚。</li><li>尚未实现的功能已经可用于生产。</li></ul></div></div></div>
+      <div class="wrap"><div class="section-head"><span class="eyebrow">Guarantees & limits</span><h2 id="boundaries-title">明确保证范围。</h2><p>当前实现提供可恢复的最终一致性。业务必须为补偿和不可逆副作用作出明确设计。</p></div><div class="boundaries"><div class="boundary good"><h3>已实现</h3><ul><li>稳定业务键与操作 ID，支持请求去重。</li><li>持久化执行进度，节点故障后继续处理。</li><li>区分成功、补偿完成和需要人工处理。</li><li>超时后查询结果，明确失败后逆序补偿。</li></ul></div><div class="boundary limit"><h3>能力边界</h3><ul><li>跨 HTTP 服务不具备即时原子提交。</li><li>补偿逻辑由业务编写，并需保证幂等。</li><li>外部支付或通知需要自身的幂等与撤销能力。</li><li>PostgreSQL/MySQL 兼容性与生产压测尚待验证。</li></ul></div></div></div>
     </section>
 
     <section id="roadmap" class="section" aria-labelledby="roadmap-title">
-      <div class="wrap"><div class="section-head"><span class="eyebrow">Build status</span><h2 id="roadmap-title">从状态机开始，<br>用故障测试收尾。</h2><p>页面展示实际进度；Actions 构建通过只表示当前骨架代码通过验证。</p></div><div class="roadmap"><article class="milestone"><span class="tag done">已完成 · 01</span><h3>设计与项目骨架</h3><p>明确一致性边界，建立 Maven 模块、状态转换规则和自动配置入口。</p></article><article class="milestone"><span class="tag">下一阶段 · 02</span><h3>持久化与参与方</h3><p>实现状态表、幂等记录、取消栅栏及业务事务边界。</p></article><article class="milestone"><span class="tag">计划中 · 03</span><h3>集群恢复与样例</h3><p>加入租约、结果查询、补偿、指标以及订单流程故障测试。</p></article></div></div>
+      <div class="wrap"><div class="section-head"><span class="eyebrow">Build status</span><h2 id="roadmap-title">核心流程已运行，<br>继续验证生产场景。</h2><p>双服务示例已验证成功订单与拒绝后补偿；Actions 持续在 Java 17 和 21 上构建测试。</p></div><div class="roadmap"><article class="milestone"><span class="tag done">已完成 · 01</span><h3>Saga 协调与持久化</h3><p>JDBC 状态表、租约、定时扫描、步骤推进与结果查询。</p></article><article class="milestone"><span class="tag done">已完成 · 02</span><h3>参与方与补偿</h3><p>同库幂等记录、迟到请求栅栏、逆序补偿与 HTTP 示例。</p></article><article class="milestone"><span class="tag">下一阶段 · 03</span><h3>生产适配验证</h3><p>目标数据库兼容性、故障压测、鉴权、指标及运维能力。</p></article></div></div>
     </section>
   </main>
 

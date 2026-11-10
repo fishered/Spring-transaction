@@ -17,8 +17,13 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>dev.cluster.tx</groupId>
+            <artifactId>cluster-tx-http</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
         </dependency>
     </dependencies>
 </project>

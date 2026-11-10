@@ -21,8 +21,10 @@
     <modules>
         <module>cluster-tx-core</module>
         <module>cluster-tx-jdbc</module>
+        <module>cluster-tx-http</module>
         <module>cluster-tx-spring-boot-autoconfigure</module>
         <module>cluster-tx-spring-boot-starter</module>
+        <module>cluster-tx-sample</module>
     </modules>
 
     <properties>

@@ -1,1 +1,2 @@
 dev.cluster.tx.autoconfigure.ClusterTxAutoConfiguration
+dev.cluster.tx.autoconfigure.SagaCoordinatorAutoConfiguration
