@@ -214,7 +214,7 @@
 
     <section id="architecture" class="section" aria-labelledby="architecture-title">
       <div class="wrap architecture">
-        <div class="arch-copy"><span class="eyebrow">Architecture</span><h2 id="architecture-title">嵌入式协调，<br>各服务自主管理数据。</h2><p>发起服务引入 Starter，多个实例共享协调器状态库；每个参与服务保留自己的数据库和业务事务。</p><ul><li>显式定义执行、查询与补偿接口。</li><li>协调器使用数据库租约和版本检查切换工作节点。</li><li>跨服务传输可替换，核心逻辑不绑定 HTTP 或消息队列。</li></ul></div>
+        <div class="arch-copy"><span class="eyebrow">Architecture</span><h2 id="architecture-title">嵌入式协调，<br>各服务自主管理数据。</h2><p>发起服务引入 Starter，多个实例共享协调器状态库；每个参与服务保留自己的数据库和业务事务。</p><ul><li>参与方标注名称并实现业务执行与补偿，HTTP 路由可自动注册。</li><li>协调器使用数据库租约和版本检查切换工作节点。</li><li>跨服务传输可替换，核心逻辑不绑定 HTTP 或消息队列。</li></ul></div>
         <div class="arch-panel" aria-label="组件分层"><span class="eyebrow">component map</span><div class="arch-row"><span class="arch-icon">01</span><div><h3>发起服务 · Saga 协调器</h3><p>保存实例、步骤与下一次执行时间，决定推进或补偿。</p></div></div><div class="arch-row"><span class="arch-icon">02</span><div><h3>参与服务 · 本地事务</h3><p>执行业务操作，并在同一数据库事务中保存幂等结果。</p></div></div><div class="arch-row"><span class="arch-icon">03</span><div><h3>恢复任务 · 集群接管</h3><p>扫描到期流程，查询未知结果，按规则重试并告警。</p></div></div></div>
       </div>
     </section>

@@ -45,7 +45,7 @@ SagaCoordinator                           业务表 + participant_operation
 
 - 协调器数据库应用 `db/cluster-tx/schema.sql`，每个参与方数据库至少建 `participant_operation`。表结构变更由应用的数据库迁移工具管理。
 - 参与方业务 SQL 必须使用 `ParticipantExecutor` 所用的数据库和事务管理器。外部支付、消息发送等不受本地事务保护，需外部幂等键、结果查询及业务撤销。
-- HTTP 路由应实施服务间认证，并配置连接/读取超时。组件只定义传输协议，不替应用管理身份与权限。
+- Servlet 参与方可将 `ParticipantAction` Bean 标注 `@SagaParticipant`，并设置 `cluster.tx.http.enabled=true` 自动注册执行、查询和补偿路由。HTTP 路由应实施服务间认证，并配置连接/读取超时。组件只定义传输协议，不替应用管理身份与权限。
 - 应监控 `NEEDS_ATTENTION`、异常重试和长时间运行实例。当前版本没有内置指标或运维控制台。
 
 仓库的 H2 集成测试覆盖独立数据库成功路径、明确拒绝后的补偿、响应丢失后的查询、补偿响应丢失、重复请求与租约竞争。`cluster-tx-sample` 提供可运行的 HTTP 双服务订单流程。PostgreSQL/MySQL 兼容性、真实宕机恢复及生产压测仍需针对部署环境验证。

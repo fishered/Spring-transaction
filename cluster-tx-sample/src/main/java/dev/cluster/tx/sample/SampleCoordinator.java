@@ -65,7 +65,7 @@ class SampleCoordinator {
         requestFactory.setConnectTimeout(2_000);
         requestFactory.setReadTimeout(5_000);
         SagaAction inventory = new HttpSagaAction(RestClient.builder().baseUrl(participantUrl)
-                .requestFactory(requestFactory).build(), "/tx/inventory");
+                .requestFactory(requestFactory).build(), "/cluster-tx/participants/inventory");
         return new SagaDefinition("order", 1,
                 List.of(new SagaStep("create-order", localOrder), new SagaStep("reserve-stock", inventory),
                         new SagaStep("confirm-order", confirmOrder)));

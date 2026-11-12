@@ -55,8 +55,8 @@ curl -s http://localhost:8081/stock
 
 1. 在发起方和参与方应用中依赖 `cluster-tx-spring-boot-starter`。本仓库尚未发布 Maven Central；可先运行 `mvn install` 安装到本机 Maven 仓库。
 2. 将 [`schema.sql`](cluster-tx-jdbc/src/main/resources/db/cluster-tx/schema.sql) 通过 Flyway 或 Liquibase 应用于协调器数据库。参与方数据库只需 `participant_operation` 表；它必须与参与方业务表处于同一数据库和事务管理器下。生产环境不要在每次启动时重建表。
-3. 参与方实现 `ParticipantAction.execute/compensate`，交给 `ParticipantExecutor`；暴露执行、查询和补偿路由。可参考 [`SampleParticipant.java`](cluster-tx-sample/src/main/java/dev/cluster/tx/sample/SampleParticipant.java)。路由必须加服务间认证。
-4. 发起方将 `SagaDefinition` 注册为 Spring Bean，使用 `HttpSagaAction` 与参与方通信，再注入 `SagaClient` 调用 `start/get/resume`。可参考 [`SampleCoordinator.java`](cluster-tx-sample/src/main/java/dev/cluster/tx/sample/SampleCoordinator.java)。HTTP 连接与读取超时需短于 `cluster.tx.lease-ms`。
+3. 参与方实现 `ParticipantAction.execute/compensate`，在类上标注 `@SagaParticipant("inventory")`，并配置 `cluster.tx.http.enabled=true`。Servlet 应用会自动提供 `/cluster-tx/participants/inventory/execute`、`/operations/{operationId}` 和 `/compensate` 路由，无需手写 Controller；可参考 [`SampleParticipant.java`](cluster-tx-sample/src/main/java/dev/cluster/tx/sample/SampleParticipant.java)。这个开关会暴露 HTTP 路由，应用必须为路由配置服务间认证。
+4. 发起方将 `SagaDefinition` 注册为 Spring Bean，使用 `HttpSagaAction` 指向 `/cluster-tx/participants/inventory`，再注入 `SagaClient` 调用 `start/get/resume`。可参考 [`SampleCoordinator.java`](cluster-tx-sample/src/main/java/dev/cluster/tx/sample/SampleCoordinator.java)。HTTP 连接与读取超时需短于 `cluster.tx.lease-ms`。
 
 示例的默认参数可通过 `cluster.tx.*` 覆盖：`scheduler-enabled`、`poll-delay-ms`、`lease-ms`、`retry-delay-ms`、`max-attempts`、`batch-size`。业务应监控 `NEEDS_ATTENTION`，确认外部结果后再选择 `RUNNING` 或 `COMPENSATING` 恢复方向。流程升级时必须保留未完成实例所使用的旧版本 `SagaDefinition`。
 
