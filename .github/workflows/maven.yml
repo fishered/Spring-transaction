@@ -28,3 +28,36 @@ jobs:
           cache: maven
       - name: Verify all modules
         run: mvn -B -ntp -Dstyle.color=never verify
+
+  postgres-cluster:
+    name: PostgreSQL cluster verification
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: cluster_tx
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d cluster_tx"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+      - name: Set up Java and Maven cache
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Verify with PostgreSQL
+        env:
+          CLUSTER_TX_POSTGRES_URL: jdbc:postgresql://localhost:5432/cluster_tx
+          CLUSTER_TX_POSTGRES_USER: postgres
+          CLUSTER_TX_POSTGRES_PASSWORD: postgres
+        run: mvn -B -ntp -Dstyle.color=never verify
