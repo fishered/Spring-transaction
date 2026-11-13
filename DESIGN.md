@@ -41,6 +41,8 @@ SagaCoordinator                           业务表 + participant_operation
 
 升级工作流时，尚未结束的旧实例仍依赖原版本 `SagaDefinition`。旧版本定义必须一直注册到对应实例全部结束。人工恢复前先查看参与方真实状态，避免将未知的已执行动作当成未执行。
 
+集群部署要求所有协调器副本共享同一状态库，所有相同参与服务副本共享其业务表与 `participant_operation`。领取租约的更新与实例读取处于同一事务，旧 epoch 的节点不能覆盖新节点进度。HTTP 调用可能在租约过期后继续运行，因而不能把租约当作恰好一次执行保证。
+
 ## 接入要求
 
 - 协调器数据库应用 `db/cluster-tx/schema.sql`，每个参与方数据库至少建 `participant_operation`。表结构变更由应用的数据库迁移工具管理。

@@ -203,6 +203,22 @@ class SagaCoordinatorTest {
         assertEquals(1, charges());
     }
 
+    @Test
+    void expiredWorkerCannotOverwriteNewOwnerAfterTakeover() {
+        SagaCoordinator coordinator = coordinator(inventoryAction(), paymentAction(false));
+        String id = coordinator.start("order", "takeover-1", "{}").id();
+        long now = store.now() + 1_000;
+        SagaInstanceRow first = store.claim(id, "first", now, 1);
+        SagaInstanceRow second = store.claim(id, "second", now + 2, 30_000);
+        assertEquals("first", first.leaseOwner());
+        assertEquals("second", second.leaseOwner());
+        assertThrows(IllegalStateException.class, () -> store.progress(first,
+                new SagaProgress(SagaStatus.SUCCEEDED, 2, now, null, -1,
+                        null, null, 0, 0), now));
+        assertEquals("second", store.instance(id).leaseOwner());
+        assertEquals(SagaStatus.RUNNING, coordinator.get(id).status());
+    }
+
     private static SagaAction recordingAction(String name, List<String> events) {
         return new SagaAction() {
             @Override public ActionResult execute(SagaCommand command) {

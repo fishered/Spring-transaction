@@ -83,11 +83,18 @@ public final class SagaJdbcRepository {
     }
 
     public SagaInstanceRow claim(String id, String owner, long now, long leaseMillis) {
-        int changed = jdbc.update("UPDATE saga_instance SET lease_owner = ?, lease_until = ?, "
-                        + "lease_epoch = lease_epoch + 1 WHERE id = ? "
-                        + "AND status IN ('RUNNING','COMPENSATING') AND next_run_at <= ? AND lease_until <= ?",
-                owner, now + leaseMillis, id, now, now);
-        return changed == 1 ? instance(id) : null;
+        return transactions.execute(status -> {
+            int changed = jdbc.update("UPDATE saga_instance SET lease_owner = ?, lease_until = ?, "
+                            + "lease_epoch = lease_epoch + 1 WHERE id = ? "
+                            + "AND status IN ('RUNNING','COMPENSATING') AND next_run_at <= ? AND lease_until <= ?",
+                    owner, now + leaseMillis, id, now, now);
+            if (changed != 1) {
+                return null;
+            }
+            return jdbc.query("SELECT * FROM saga_instance WHERE id = ? AND lease_owner = ?",
+                    INSTANCE_MAPPER, id, owner).stream().findFirst()
+                    .orElseThrow(() -> new IllegalStateException("Claimed Saga lease disappeared: " + id));
+        });
     }
 
     public void progress(SagaInstanceRow lease, SagaProgress next, long now) {

@@ -60,6 +60,14 @@ curl -s http://localhost:8081/stock
 
 示例的默认参数可通过 `cluster.tx.*` 覆盖：`scheduler-enabled`、`poll-delay-ms`、`lease-ms`、`retry-delay-ms`、`max-attempts`、`batch-size`。业务应监控 `NEEDS_ATTENTION`，确认外部结果后再选择 `RUNNING` 或 `COMPENSATING` 恢复方向。流程升级时必须保留未完成实例所使用的旧版本 `SagaDefinition`。
 
+## 集群部署条件
+
+- 所有协调器副本必须连接同一个可靠的协调器数据库，并注册相同的工作流定义及尚未完成实例所需的旧版本。示例的本地 H2 文件数据库仅供演示，不能作为多机共享状态库。
+- 同一个参与服务的所有副本必须共享其业务数据库及 `participant_operation` 表；HTTP 请求可以经负载均衡转发至任一副本。若每个副本各用独立数据库，重复请求就无法全局去重。
+- 将 HTTP 连接与读取超时设置为明显短于 `cluster.tx.lease-ms`，同时预留业务执行和数据库提交时间。租约到期后可能出现重复远程调用，参与方幂等记录是正确性的必要条件。
+- 所有节点都会扫描到期任务；领取与读取租约在同一数据库事务中完成，进度更新检查租约 epoch。协调器数据库故障会暂停推进，恢复后继续扫描。
+- 当前仅在 H2 上验证过租约竞争和过期节点无法覆盖新节点；PostgreSQL/MySQL 多节点故障测试及压测仍需在目标环境完成。
+
 ## 保证与限制
 
 - 参与方业务变更与 `participant_operation` 必须使用同一事务管理器及数据库。`REJECTED` 必须没有业务副作用；已发生部分修改时应抛异常回滚。
