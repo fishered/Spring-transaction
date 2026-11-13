@@ -103,6 +103,9 @@
     .arch-copy p { color: var(--ink-soft); }
     .arch-copy ul { padding-left: 21px; color: var(--ink-soft); font-size: .9rem; }
     .arch-copy li { margin: 10px 0; }
+    .install-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 42px; align-items: center; }
+    .install-copy p { color: var(--ink-soft); }
+    .install-code { margin: 0; padding: 24px; overflow-x: auto; border-radius: 14px; background: var(--ink); color: #d7f4ee; font: .82rem/1.7 var(--font-code); }
     .boundaries { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
     .boundary { padding: 29px; border-radius: 14px; border: 1px solid var(--line); background: #fff; }
     .boundary.good { border-top: 4px solid var(--teal); }
@@ -124,7 +127,7 @@
     .footer-inner { display: flex; align-items: center; justify-content: space-between; gap: 20px; color: var(--ink-soft); font-size: .8rem; }
     .footer strong { color: var(--ink); }
     @media (max-width: 900px) {
-      .hero-grid, .architecture { grid-template-columns: 1fr; }
+      .hero-grid, .architecture, .install-grid { grid-template-columns: 1fr; }
       .hero { padding-top: 70px; }
       .trace { max-width: 680px; }
     }
@@ -159,6 +162,7 @@
       <nav aria-label="主导航">
         <a href="#principles">设计原则</a>
         <a href="#architecture">组件架构</a>
+        <a href="#install">Maven 集成</a>
         <a href="#boundaries">保证边界</a>
         <a id="repo-link" hidden>GitHub 仓库</a>
         <a href="#roadmap" class="nav-pill">当前进度 ↗</a>
@@ -219,6 +223,17 @@
       </div>
     </section>
 
+    <section id="install" class="section section-white" aria-labelledby="install-title">
+      <div class="wrap install-grid">
+        <div class="install-copy"><span class="eyebrow">Open source / Maven</span><h2 id="install-title">把 Starter 接入<br>你的 Spring 项目。</h2><p>项目已采用 Apache 2.0 开源。当前版本先在仓库根目录执行 <code>mvn install</code>，再把右侧依赖加入 Spring Boot 4.1.x 项目。Maven Central 发布配置已就绪，正式版本仍需完成命名空间验证与签名发布。</p><a class="text-link" href="https://github.com/fishered/Spring-transaction#接入自己的服务">查看完整接入步骤 ↗</a></div>
+        <pre class="install-code"><code>&lt;dependency&gt;
+  &lt;groupId&gt;io.github.fishered&lt;/groupId&gt;
+  &lt;artifactId&gt;cluster-tx-spring-boot-starter&lt;/artifactId&gt;
+  &lt;version&gt;0.1.0-SNAPSHOT&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+      </div>
+    </section>
+
     <section id="boundaries" class="section section-white" aria-labelledby="boundaries-title">
       <div class="wrap"><div class="section-head"><span class="eyebrow">Guarantees & limits</span><h2 id="boundaries-title">明确保证范围。</h2><p>当前实现提供可恢复的最终一致性。业务必须为补偿和不可逆副作用作出明确设计。</p></div><div class="boundaries"><div class="boundary good"><h3>已实现</h3><ul><li>稳定业务键与操作 ID，支持请求去重。</li><li>持久化执行进度，节点故障后继续处理。</li><li>区分成功、补偿完成和需要人工处理。</li><li>超时后查询结果，明确失败后逆序补偿。</li></ul></div><div class="boundary limit"><h3>能力边界</h3><ul><li>跨 HTTP 服务不具备即时原子提交。</li><li>补偿逻辑由业务编写，并需保证幂等。</li><li>外部支付或通知需要自身的幂等与撤销能力。</li><li>PostgreSQL 集群用例已验证；MySQL 与生产压测尚待完成。</li></ul></div></div></div>
     </section>
@@ -228,7 +243,7 @@
     </section>
   </main>
 
-  <footer class="footer"><div class="wrap footer-inner"><span><strong>Cluster Transaction</strong> · Spring Boot 跨服务事务组件设计</span><span>状态清晰，恢复有据。</span></div></footer>
+  <footer class="footer"><div class="wrap footer-inner"><span><strong>Cluster Transaction</strong> · Spring Boot 跨服务事务组件设计</span><span><a href="https://github.com/fishered/Spring-transaction/blob/main/LICENSE">Apache 2.0</a> · 状态清晰，恢复有据。</span></div></footer>
 
   <script>
     const repoLink = document.getElementById('repo-link');

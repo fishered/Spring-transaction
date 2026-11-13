@@ -1,0 +1,48 @@
+name: Stage Maven Central release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version already set in all Maven POMs, for example 0.1.0
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  stage:
+    name: Build, sign and upload for manual review
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+      - name: Set up Java, Central credentials and GPG
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          server-id: central
+          server-username-env-var: CENTRAL_USERNAME
+          server-password-env-var: CENTRAL_PASSWORD
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase-env-var: GPG_PASSPHRASE
+      - name: Check credentials and release version
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          test -n "$CENTRAL_USERNAME" && test -n "$CENTRAL_PASSWORD" && test -n "$GPG_PASSPHRASE"
+          actual="$(mvn -B -ntp -q help:evaluate -Dexpression=project.version -DforceStdout)"
+          test "$actual" = "$RELEASE_VERSION"
+          case "$actual" in *-SNAPSHOT) exit 1 ;; esac
+      - name: Build, test, sign and upload draft
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: mvn -B -ntp -Dstyle.color=never -Pcentral-release clean deploy

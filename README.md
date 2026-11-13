@@ -2,7 +2,7 @@
 
 [![Maven build](https://github.com/fishered/Spring-transaction/actions/workflows/maven.yml/badge.svg)](https://github.com/fishered/Spring-transaction/actions/workflows/maven.yml)
 
-[项目介绍页](https://fishered.github.io/Spring-transaction/) · [GitHub Actions](https://github.com/fishered/Spring-transaction/actions) · [设计说明](DESIGN.md)
+[项目介绍页](https://fishered.github.io/Spring-transaction/) · [GitHub Actions](https://github.com/fishered/Spring-transaction/actions) · [设计说明](DESIGN.md) · [Apache 2.0 许可证](LICENSE)
 
 适用于 Spring Boot 4 的顺序 Saga 组件。协调器把流程和步骤写入 JDBC 数据库；参与方在本地事务内提交业务变更及幂等记录。业务步骤明确拒绝时，协调器按相反顺序执行补偿。超时或响应丢失时，先用稳定的 `operationId` 查询参与方，再决定下一步。
 
@@ -53,7 +53,19 @@ curl -s http://localhost:8081/stock
 
 ## 接入自己的服务
 
-1. 在发起方和参与方应用中依赖 `cluster-tx-spring-boot-starter`。本仓库尚未发布 Maven Central；可先运行 `mvn install` 安装到本机 Maven 仓库。
+目前尚未发布 Maven Central。先在本仓库运行 `mvn -B -ntp install`，将 `0.1.0-SNAPSHOT` 安装到本机 Maven 仓库，然后在另一个 Spring Boot 4.1.x 项目的 `pom.xml` 中添加：
+
+```xml
+<dependency>
+    <groupId>io.github.fishered</groupId>
+    <artifactId>cluster-tx-spring-boot-starter</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+</dependency>
+```
+
+该依赖会传递引入 `core`、`jdbc`、`http` 与自动配置模块。Java 包名仍为 `dev.cluster.tx.*`。仓库另有独立的 [`consumer-smoke`](consumer-smoke/pom.xml) Maven 项目，CI 在安装所有模块后编译它，检查外部项目能解析 Starter 及其传递依赖。正式版本发布后，同样的依赖坐标可直接从 Maven Central 下载，无需先执行本地安装。发布步骤见 [`RELEASING.md`](RELEASING.md)。
+
+1. 在发起方和参与方应用中添加上述 Starter 依赖。
 2. 将 [`schema.sql`](cluster-tx-jdbc/src/main/resources/db/cluster-tx/schema.sql) 通过 Flyway 或 Liquibase 应用于协调器数据库。参与方数据库只需 `participant_operation` 表；它必须与参与方业务表处于同一数据库和事务管理器下。生产环境不要在每次启动时重建表。
 3. 参与方实现 `ParticipantAction.execute/compensate`，在类上标注 `@SagaParticipant("inventory")`，并配置 `cluster.tx.http.enabled=true`。Servlet 应用会自动提供 `/cluster-tx/participants/inventory/execute`、`/operations/{operationId}` 和 `/compensate` 路由，无需手写 Controller；可参考 [`SampleParticipant.java`](cluster-tx-sample/src/main/java/dev/cluster/tx/sample/SampleParticipant.java)。这个开关会暴露 HTTP 路由，应用必须为路由配置服务间认证。
 4. 发起方将 `SagaDefinition` 注册为 Spring Bean，使用 `HttpSagaAction` 指向 `/cluster-tx/participants/inventory`，再注入 `SagaClient` 调用 `start/get/resume`。可参考 [`SampleCoordinator.java`](cluster-tx-sample/src/main/java/dev/cluster/tx/sample/SampleCoordinator.java)。HTTP 连接与读取超时需短于 `cluster.tx.lease-ms`。
@@ -79,3 +91,7 @@ curl -s http://localhost:8081/stock
 - 当前数据库集成测试覆盖 H2 和 PostgreSQL 16；MySQL、真实进程宕机与并发压测尚未完成，也没有内置鉴权、指标或运维后台。
 
 GitHub Actions 在 Java 17 和 21 上运行 `mvn verify`。Pages 介绍页由 `site/` 自动部署。
+
+## 开源协议
+
+项目以 [Apache License 2.0](LICENSE) 开源。欢迎通过 GitHub Issues 报告问题或提交 Pull Request；请在变更中说明使用场景与验证方式。
