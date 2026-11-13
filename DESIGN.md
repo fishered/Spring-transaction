@@ -50,4 +50,4 @@ SagaCoordinator                           业务表 + participant_operation
 - Servlet 参与方可将 `ParticipantAction` Bean 标注 `@SagaParticipant`，并设置 `cluster.tx.http.enabled=true` 自动注册执行、查询和补偿路由。HTTP 路由应实施服务间认证，并配置连接/读取超时。组件只定义传输协议，不替应用管理身份与权限。
 - 应监控 `NEEDS_ATTENTION`、异常重试和长时间运行实例。当前版本没有内置指标或运维控制台。
 
-仓库的 H2 集成测试覆盖独立数据库成功路径、明确拒绝后的补偿、响应丢失后的查询、补偿响应丢失、重复请求与租约竞争。`cluster-tx-sample` 提供可运行的 HTTP 双服务订单流程。PostgreSQL/MySQL 兼容性、真实宕机恢复及生产压测仍需针对部署环境验证。
+仓库的 H2 集成测试覆盖独立数据库成功路径、明确拒绝后的补偿、响应丢失后的查询、补偿响应丢失、重复请求与租约竞争。GitHub Actions 的 PostgreSQL 16 服务容器还验证两个协调器共享状态、参与方副本去重和补偿。`cluster-tx-sample` 提供可运行的 HTTP 双服务订单流程。MySQL 兼容性、真实进程宕机恢复及生产压测仍需针对部署环境验证。

@@ -220,11 +220,11 @@
     </section>
 
     <section id="boundaries" class="section section-white" aria-labelledby="boundaries-title">
-      <div class="wrap"><div class="section-head"><span class="eyebrow">Guarantees & limits</span><h2 id="boundaries-title">明确保证范围。</h2><p>当前实现提供可恢复的最终一致性。业务必须为补偿和不可逆副作用作出明确设计。</p></div><div class="boundaries"><div class="boundary good"><h3>已实现</h3><ul><li>稳定业务键与操作 ID，支持请求去重。</li><li>持久化执行进度，节点故障后继续处理。</li><li>区分成功、补偿完成和需要人工处理。</li><li>超时后查询结果，明确失败后逆序补偿。</li></ul></div><div class="boundary limit"><h3>能力边界</h3><ul><li>跨 HTTP 服务不具备即时原子提交。</li><li>补偿逻辑由业务编写，并需保证幂等。</li><li>外部支付或通知需要自身的幂等与撤销能力。</li><li>PostgreSQL/MySQL 兼容性与生产压测尚待验证。</li></ul></div></div></div>
+      <div class="wrap"><div class="section-head"><span class="eyebrow">Guarantees & limits</span><h2 id="boundaries-title">明确保证范围。</h2><p>当前实现提供可恢复的最终一致性。业务必须为补偿和不可逆副作用作出明确设计。</p></div><div class="boundaries"><div class="boundary good"><h3>已实现</h3><ul><li>稳定业务键与操作 ID，支持请求去重。</li><li>持久化执行进度，节点故障后继续处理。</li><li>区分成功、补偿完成和需要人工处理。</li><li>超时后查询结果，明确失败后逆序补偿。</li></ul></div><div class="boundary limit"><h3>能力边界</h3><ul><li>跨 HTTP 服务不具备即时原子提交。</li><li>补偿逻辑由业务编写，并需保证幂等。</li><li>外部支付或通知需要自身的幂等与撤销能力。</li><li>PostgreSQL 集群用例已验证；MySQL 与生产压测尚待完成。</li></ul></div></div></div>
     </section>
 
     <section id="roadmap" class="section" aria-labelledby="roadmap-title">
-      <div class="wrap"><div class="section-head"><span class="eyebrow">Build status</span><h2 id="roadmap-title">核心流程已运行，<br>继续验证生产场景。</h2><p>双服务示例已验证成功订单与拒绝后补偿；Actions 持续在 Java 17 和 21 上构建测试。</p></div><div class="roadmap"><article class="milestone"><span class="tag done">已完成 · 01</span><h3>Saga 协调与持久化</h3><p>JDBC 状态表、租约、定时扫描、步骤推进与结果查询。</p></article><article class="milestone"><span class="tag done">已完成 · 02</span><h3>参与方与补偿</h3><p>同库幂等记录、迟到请求栅栏、逆序补偿与 HTTP 示例。</p></article><article class="milestone"><span class="tag">下一阶段 · 03</span><h3>生产适配验证</h3><p>目标数据库兼容性、故障压测、鉴权、指标及运维能力。</p></article></div></div>
+      <div class="wrap"><div class="section-head"><span class="eyebrow">Build status</span><h2 id="roadmap-title">核心流程已运行，<br>继续验证生产场景。</h2><p>双服务示例已验证成功与补偿；Actions 在 Java 17、21 和 PostgreSQL 16 上执行测试。</p></div><div class="roadmap"><article class="milestone"><span class="tag done">已完成 · 01</span><h3>Saga 协调与持久化</h3><p>JDBC 状态表、租约、定时扫描、步骤推进与结果查询。</p></article><article class="milestone"><span class="tag done">已完成 · 02</span><h3>参与方与补偿</h3><p>同库幂等记录、迟到请求栅栏、逆序补偿与 HTTP 示例。</p></article><article class="milestone"><span class="tag">下一阶段 · 03</span><h3>生产适配验证</h3><p>MySQL、进程故障压测、鉴权、指标及运维能力。</p></article></div></div>
     </section>
   </main>
 

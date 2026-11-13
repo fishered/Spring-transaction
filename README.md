@@ -66,7 +66,9 @@ curl -s http://localhost:8081/stock
 - 同一个参与服务的所有副本必须共享其业务数据库及 `participant_operation` 表；HTTP 请求可以经负载均衡转发至任一副本。若每个副本各用独立数据库，重复请求就无法全局去重。
 - 将 HTTP 连接与读取超时设置为明显短于 `cluster.tx.lease-ms`，同时预留业务执行和数据库提交时间。租约到期后可能出现重复远程调用，参与方幂等记录是正确性的必要条件。
 - 所有节点都会扫描到期任务；领取与读取租约在同一数据库事务中完成，进度更新检查租约 epoch。协调器数据库故障会暂停推进，恢复后继续扫描。
-- 当前仅在 H2 上验证过租约竞争和过期节点无法覆盖新节点；PostgreSQL/MySQL 多节点故障测试及压测仍需在目标环境完成。
+- GitHub Actions 使用 PostgreSQL 16 服务容器验证两个协调器共享状态、参与方副本去重和失败补偿。H2 测试覆盖过期节点无法覆盖新节点。真实进程宕机、MySQL 与目标环境压测仍需继续验证。
+
+本地若有 PostgreSQL，可设置 `CLUSTER_TX_POSTGRES_URL`、`CLUSTER_TX_POSTGRES_USER` 和 `CLUSTER_TX_POSTGRES_PASSWORD` 后运行 `mvn verify`；测试会在该数据库中创建独立 schema。本地未设置 URL 时，该用例跳过，GitHub Actions 的 PostgreSQL job 会强制实际运行。部署时将参与方 URL 配为负载均衡入口，并为协调器数据库配置备份与高可用。
 
 ## 保证与限制
 
@@ -74,6 +76,6 @@ curl -s http://localhost:8081/stock
 - 执行与补偿通过 `operationId` 去重。补偿先到会写 `CANCELLED` 栅栏，迟到的执行请求不能再修改业务数据。
 - 参与方自身调用支付网关、消息队列等外部资源时，需要外部系统提供幂等键、结果查询和可行的撤销机制；本地数据库事务不能覆盖这些资源。
 - 租约只保证最终有节点接管，不保证远程调用只发生一次。业务动作与补偿必须可重复执行或由参与方幂等层保护。
-- 当前数据库集成测试使用 H2；尚未完成 PostgreSQL/MySQL 的兼容性与并发压测，也没有内置鉴权、指标或运维后台。
+- 当前数据库集成测试覆盖 H2 和 PostgreSQL 16；MySQL、真实进程宕机与并发压测尚未完成，也没有内置鉴权、指标或运维后台。
 
 GitHub Actions 在 Java 17 和 21 上运行 `mvn verify`。Pages 介绍页由 `site/` 自动部署。
